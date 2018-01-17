@@ -112,6 +112,9 @@ var PhotoSphereViewer = function(args) {
     var targetting_k = false;
     var targetting_m = false;
 
+    var start_l_fov = false;
+    var fov = false;
+
     var b_points = new Array();
     var b_lpoints = new Array();
     var b_4points = new Array();
@@ -124,6 +127,15 @@ var PhotoSphereViewer = function(args) {
     var h;
     var w;
     var obj;
+
+    var click_p0 = {
+        x : 0,
+        y : 0
+    };
+    var click_p1= {
+        x : 0,
+        y : 0
+    };
 
     var raycasterPoint = new THREE.Vector3();
 
@@ -1160,6 +1172,8 @@ var PhotoSphereViewer = function(args) {
 
         if (labeling_k) {
             labeling_m = true;
+            start_l_fov = true;
+            fov = true;
             getPoint(evt);
             box_tl = getCoord(evt);
         }
@@ -1175,6 +1189,8 @@ var PhotoSphereViewer = function(args) {
             }
             moveTo(lon , Math.PI/2 - foc_pos.lat);
             console.log(foc_pos.lon * 180/Math.PI, foc_pos.lat * 180 / Math.PI);
+            console.log("spherical coords:");
+            console.log(foc_pos.lon * 180, foc_pos.lat * 180);
         }
         //if(!labeling && !lock) {
         else {
@@ -1208,10 +1224,37 @@ var PhotoSphereViewer = function(args) {
      var getSPosition = function(evt){
         var b_x = parseInt(evt.clientX);
         var b_y = parseInt(evt.clientY);
+
         var lat_lon = new Object();
 
         var can_pano = document.getElementById('your-pano').getBoundingClientRect();
 
+        if(fov){
+            if(start_l_fov){
+                click_p0.x = b_x;
+                click_p0.y = b_y;
+
+                console.log("click-point0:", b_x, b_y)
+            }else{
+                click_p1.x = b_x;
+                click_p1.y = b_y;
+
+                console.log("click-point1:", b_x, b_y)
+
+                var center = outputInfospotPosition(can_pano, (click_p0.x + click_p1.x)/2 , (click_p0.y + click_p1.y)/2);
+
+                console.log("fov:",  (click_p1.x - click_p0.x)/can_pano.width*fov/Math.PI*180, (click_p1.y - click_p0.y)/can_pano.height*fov/Math.PI*180)
+
+                /*console.log("obj: center:", center.lon /Math.PI*180, center.lat /Math.PI*180)
+
+                var cl = outputInfospotPosition(can_pano, click_p0.x , (click_p1.y + click_p0.y)/2);
+                var ct = outputInfospotPosition(can_pano, (click_p0.x + click_p1.x)/2 , click_p0.y);
+                var cr = outputInfospotPosition(can_pano, click_p1.x , (click_p1.y + click_p0.y)/2);
+                var cb = outputInfospotPosition(can_pano, (click_p0.x + click_p1.x)/2 , click_p1.y);
+
+                console.log("obj: fov:", "horizontal:", (cr.lon-cl.lon)/Math.PI*180, "vertical:", (cb.lat - ct.lat)/Math.PI*180 )*/
+            }
+        }
 
         lat_lon = outputInfospotPosition(can_pano, b_x, b_y);
 
@@ -1373,7 +1416,9 @@ var PhotoSphereViewer = function(args) {
         labeling_m = false;
        // if (labeling_k) {
         labeling_k = false;
-            getPoint(evt);
+        start_l_fov = false;
+        getPoint(evt);
+        fov = false;
         //}
         //console.log("m:"+labeling_m+"k:"+labeling_k+"len:"+b_points.length + ": "+b_points[0]);
         //console.log(b_points[0]);
@@ -1736,9 +1781,9 @@ var PhotoSphereViewer = function(args) {
      **/
 
     var zoom = function(level) {
-        zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
+        zoom_lvl = stayBetween(parseInt(Math.round(level)), -200, 100);
         fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
-
+        console.log(fov);
         camera.fov = fov;
         camera.updateProjectionMatrix();
         render();
@@ -1791,8 +1836,9 @@ var PhotoSphereViewer = function(args) {
      **/
 
     this.zoomOut = function() {
-        if (zoom_lvl > 0)
+        if (zoom_lvl > -200)
             zoom(zoom_lvl - 1);
+
     };
 
     /**
